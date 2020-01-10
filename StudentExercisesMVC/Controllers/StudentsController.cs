@@ -48,13 +48,19 @@ namespace StudentExercisesMVC.Controllers
                     List<Student> students = new List<Student>();
                     while (reader.Read())
                     {
+                        int cohortId = 0;
+                        if (!reader.IsDBNull(reader.GetOrdinal("cohort_id")))
+                        {
+                            cohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"));
+                        }
+
                         Student student = new Student
                         {
                             Id = reader.GetInt32(reader.GetOrdinal("id")),
                             FirstName = reader.GetString(reader.GetOrdinal("first_name")),
                             LastName = reader.GetString(reader.GetOrdinal("last_name")),
                             SlackHandle = reader.GetString(reader.GetOrdinal("slack_handle")),
-                            CohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"))
+                            CohortId = cohortId
                         };
 
                         students.Add(student);
@@ -88,13 +94,19 @@ namespace StudentExercisesMVC.Controllers
 
                     if (reader.Read())
                     {
+                        int cohortId = 0;
+                        if (!reader.IsDBNull(reader.GetOrdinal("cohort_id")))
+                        {
+                            cohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"));
+                        }
+
                         Student student = new Student
                         {
                             Id = reader.GetInt32(reader.GetOrdinal("id")),
                             FirstName = reader.GetString(reader.GetOrdinal("first_name")),
                             LastName = reader.GetString(reader.GetOrdinal("last_name")),
                             SlackHandle = reader.GetString(reader.GetOrdinal("slack_handle")),
-                            CohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"))
+                            CohortId = cohortId
                         };
 
                         reader.Close();
@@ -137,23 +149,30 @@ namespace StudentExercisesMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create(StudentCreateViewModel model)
         {
-            using (SqlConnection conn = Connection)
+            try
             {
-                conn.Open();
-                using (SqlCommand cmd = conn.CreateCommand())
+                using (SqlConnection conn = Connection)
                 {
-                    cmd.CommandText = @"INSERT INTO students
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"INSERT INTO students
                 ( first_name, last_name, slack_handle, cohort_id )
                 VALUES
                 ( @first_name, @last_name, @slack_handle, @cohort_id )";
-                    cmd.Parameters.Add(new SqlParameter("@first_name", model.Student.FirstName));
-                    cmd.Parameters.Add(new SqlParameter("@last_name", model.Student.LastName));
-                    cmd.Parameters.Add(new SqlParameter("@slack_handle", model.Student.SlackHandle));
-                    cmd.Parameters.Add(new SqlParameter("@cohort_id", model.Student.CohortId));
-                    await cmd.ExecuteNonQueryAsync();
+                        cmd.Parameters.Add(new SqlParameter("@first_name", model.Student.FirstName));
+                        cmd.Parameters.Add(new SqlParameter("@last_name", model.Student.LastName));
+                        cmd.Parameters.Add(new SqlParameter("@slack_handle", model.Student.SlackHandle));
+                        cmd.Parameters.Add(new SqlParameter("@cohort_id", model.Student.CohortId));
+                        await cmd.ExecuteNonQueryAsync();
 
-                    return RedirectToAction(nameof(Index));
+                        return RedirectToAction(nameof(Index));
+                    }
                 }
+            }
+            catch
+            {
+                return View();
             }
         }
 
@@ -201,7 +220,7 @@ namespace StudentExercisesMVC.Controllers
                         cmd.Parameters.Add(new SqlParameter("@last", model.Student.LastName));
                         cmd.Parameters.Add(new SqlParameter("@slack", model.Student.SlackHandle));
                         cmd.Parameters.Add(new SqlParameter("@cohort", model.Student.CohortId));
-                        cmd.Parameters.Add(new SqlParameter("@id", id));
+                        cmd.Parameters.Add(new SqlParameter("@id", model.Student.Id));
                         await cmd.ExecuteNonQueryAsync();
 
                         return RedirectToAction(nameof(Index));

@@ -110,7 +110,8 @@ namespace StudentExercisesMVC.Controllers
                             id,
                             first_name,
                             last_name,
-                            slack_handle
+                            slack_handle,
+                            specialty
                         FROM instructors";
                     SqlDataReader reader = cmd.ExecuteReader();
 
@@ -123,6 +124,7 @@ namespace StudentExercisesMVC.Controllers
                             FirstName = reader.GetString(reader.GetOrdinal("first_name")),
                             LastName = reader.GetString(reader.GetOrdinal("last_name")),
                             SlackHandle = reader.GetString(reader.GetOrdinal("slack_handle")),
+                            Specialty = reader.GetString(reader.GetOrdinal("specialty"))
                         });
                     }
 
