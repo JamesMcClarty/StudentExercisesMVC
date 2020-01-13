@@ -183,20 +183,58 @@ namespace StudentExercisesMVC.Controllers
         // GET: Instructors/Edit/5
         public ActionResult Edit(int id)
         {
-            return View();
+            var viewModel = new InstructorCreateViewModel();
+            var cohorts = GetAllCohorts();
+            var selectItems = cohorts
+                .Select(cohort => new SelectListItem
+                {
+                    Text = cohort.Name,
+                    Value = cohort.Id.ToString()
+                })
+                .ToList();
+
+            selectItems.Insert(0, new SelectListItem
+            {
+                Text = "Choose cohort...",
+                Value = "0"
+            });
+            viewModel.Cohorts = selectItems;
+
+            return View(viewModel);
         }
 
         // POST: Instructors/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        public async Task<ActionResult> Edit(int id, InstructorCreateViewModel model)
         {
             try
             {
-                // TODO: Add update logic here
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"UPDATE instructors
+                                            SET first_name = @first,
+                                                last_name = @last,
+                                                slack_handle = @slack,
+                                                specialty = @specialty,
+                                                cohort_id = @cohort
+                                            WHERE id = @id";
+                        cmd.Parameters.Add(new SqlParameter("@first", model.instructor.FirstName));
+                        cmd.Parameters.Add(new SqlParameter("@last", model.instructor.LastName));
+                        cmd.Parameters.Add(new SqlParameter("@slack", model.instructor.SlackHandle));
+                        cmd.Parameters.Add(new SqlParameter("@specialty", model.instructor.Specialty));
+                        cmd.Parameters.Add(new SqlParameter("@cohort", model.instructor.CohortId));
+                        cmd.Parameters.Add(new SqlParameter("@id", id));
+                        await cmd.ExecuteNonQueryAsync();
 
-                return RedirectToAction(nameof(Index));
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
             }
+
             catch
             {
                 return View();
@@ -204,19 +242,67 @@ namespace StudentExercisesMVC.Controllers
         }
 
         // GET: Instructors/Delete/5
-        public ActionResult Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
-            return View();
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                    SELECT i.id,
+                    i.first_name,
+                    i.last_name,
+                    i.slack_handle,
+                    i.specialty,
+                    i.cohort_id
+                    FROM instructors i
+                    WHERE i.id = @ID";
+                    cmd.Parameters.Add(new SqlParameter("@ID", id));
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+                    if (reader.Read())
+                    {
+                        Instructor instructor = new Instructor
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("id")),
+                            FirstName = reader.GetString(reader.GetOrdinal("first_name")),
+                            LastName = reader.GetString(reader.GetOrdinal("last_name")),
+                            SlackHandle = reader.GetString(reader.GetOrdinal("slack_handle")),
+                            Specialty = reader.GetString(reader.GetOrdinal("slack_handle")),
+                            CohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"))
+                        };
+
+                        reader.Close();
+
+                        return View(instructor);
+                    }
+                    else
+                    {
+                        return NoContent();
+                    }
+                }
+            }
         }
 
         // POST: Instructors/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        public async Task<ActionResult> Delete(Instructor model)
         {
             try
             {
-                // TODO: Add delete logic here
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"DELETE FROM instructors WHERE id = @id";
+                        cmd.Parameters.Add(new SqlParameter("@Id", model.Id));
+
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
 
                 return RedirectToAction(nameof(Index));
             }
