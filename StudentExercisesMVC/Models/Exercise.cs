@@ -10,7 +10,7 @@ namespace StudentExercisesMVC.Models
         [Required]
         public int Id { get; set; }
         [Required]
-        [StringLength(12, MinimumLength = 1)]
+        [StringLength(25, MinimumLength = 1)]
         public string Name { get; set; }
         [Required]
         [StringLength(12, MinimumLength = 1)]
