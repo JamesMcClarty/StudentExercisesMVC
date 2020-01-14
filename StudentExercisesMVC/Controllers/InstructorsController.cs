@@ -181,26 +181,60 @@ namespace StudentExercisesMVC.Controllers
         }
 
         // GET: Instructors/Edit/5
-        public ActionResult Edit(int id)
+        public async Task<ActionResult> Edit(int id)
         {
-            var viewModel = new InstructorCreateViewModel();
-            var cohorts = GetAllCohorts();
-            var selectItems = cohorts
-                .Select(cohort => new SelectListItem
-                {
-                    Text = cohort.Name,
-                    Value = cohort.Id.ToString()
-                })
-                .ToList();
+            string sql = $@"
+                            SELECT
+                                i.id,
+                                i.first_name,
+                                i.last_name,
+                                i.slack_handle,
+                                i.specialty,
+                                i.cohort_id
+                            FROM instructors i
+                            WHERE i.Id = @ID";
 
-            selectItems.Insert(0, new SelectListItem
+            InstructorEditViewModel viewModel = new InstructorEditViewModel(Connection);
+
+            using (SqlConnection conn = Connection)
             {
-                Text = "Choose cohort...",
-                Value = "0"
-            });
-            viewModel.Cohorts = selectItems;
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = sql;
+                    cmd.Parameters.Add(new SqlParameter("@ID", id));
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
-            return View(viewModel);
+                    if (reader.Read())
+                    {
+                        int cohortId = 0;
+                        if (!reader.IsDBNull(reader.GetOrdinal("cohort_id")))
+                        {
+                            cohortId = reader.GetInt32(reader.GetOrdinal("cohort_id"));
+                        }
+
+                        Instructor instructor = new Instructor
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("id")),
+                            FirstName = reader.GetString(reader.GetOrdinal("first_name")),
+                            LastName = reader.GetString(reader.GetOrdinal("last_name")),
+                            SlackHandle = reader.GetString(reader.GetOrdinal("slack_handle")),
+                            Specialty = reader.GetString(reader.GetOrdinal("specialty")),
+                            CohortId = cohortId
+                        };
+
+                        reader.Close();
+
+                        viewModel.Instructor = instructor;
+
+                        return View(viewModel);
+                    }
+                    else
+                    {
+                        return NoContent();
+                    }
+                }
+            }
         }
 
         // POST: Instructors/Edit/5
